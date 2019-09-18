@@ -1,0 +1,61 @@
+using Flux.Tracker
+using Zygote
+@show f(x) = 3x^2+6x+2;
+@show f(5)
+@show df(x) = Tracker.gradient(f, x)[1];
+@show df(5)
+
+
+W = param(2)
+b = param(3)
+
+f(x) = W * x + b;
+@show grads = Tracker.gradient(() -> f(1031), params(W,b))
+
+grads[W]
+grads[b]
+
+
+W = rand(2,5)
+b = rand(2)
+predict(x) = W*x .+b
+function loss(x, y)
+    ŷ = predict(x)
+    sum((y .- ŷ).^2)
+end
+x, y = rand(5), rand(2)
+loss(x, y)
+using Flux.Tracker
+W = param(W)
+b = param(b)
+
+gs = Tracker.gradient(() -> loss(x, y), params(W, b))
+gs[W]
+gs[b]
+
+using Flux.Tracker: update!
+
+Δ = gs[W]
+
+# Update the parameter and reset the gradient
+update!(W, -0.1Δ)
+
+loss(x, y) # ~ 2.5
+
+
+
+
+function linear(in, out)
+  W = param(randn(out, in))
+  b = param(randn(out))
+  x -> W * x .+ b
+end
+
+#we can see heere that a closure is being created each time linear is called. 
+
+linear1 = linear(5, 3) # we can access linear1.W etc
+linear2 = linear(3, 2)
+
+model(x) = linear2(σ.(linear1(x)))
+
+model(rand(5))
